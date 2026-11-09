@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="blueprint">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Server Components のデータフェッチ</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" id="theme-link" href="assets/themes/blueprint.css">
+<link rel="stylesheet" href="assets/animations/animations.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-themes="blueprint" data-theme-base="assets/themes/">
+<div class="deck">
+
+  <!-- 1. Cover -->
+  <section class="slide" data-title="表紙">
+    <p class="kicker">勉強会 · 2026-10-27</p>
+    <h1 class="h1 anim-fade-up" data-anim="fade-up">Server Components の<br><span class="gradient-text">データフェッチ設計</span></h1>
+    <p class="lede mt-m">通信回数と責務のトレードオフを、コロケーション・メモ化・並行フェッチ・DataLoader で解く</p>
+    <div class="mt-l"><span class="tag">Next.js App Router</span><span class="tag">React.cache</span><span class="tag">DataLoader</span></div>
+    <div class="deck-footer"><span class="dim2">#nextjs #rsc</span><span class="slide-number"></span></div>
+  </section>
+
+  <!-- 2. Agenda -->
+  <section class="slide" data-title="目次">
+    <p class="kicker">// agenda</p>
+    <h2 class="h2">今日の流れ</h2>
+    <div class="stack mt-l">
+      <div class="agenda-row"><span class="num">01</span><span class="t">通信回数と責務のトレードオフ</span><span class="d">問題提起</span></div>
+      <div class="agenda-row"><span class="num">02</span><span class="t">クライアントサイドフェッチの問題点</span><span class="d">なぜサーバーで取るのか</span></div>
+      <div class="agenda-row"><span class="num">03</span><span class="t">BFF とコロケーション</span><span class="d">コンポーネントがデータを取る</span></div>
+      <div class="agenda-row"><span class="num">04</span><span class="t">Request Memoization</span><span class="d">重複リクエストを 1 回に</span></div>
+      <div class="agenda-row"><span class="num">05</span><span class="t">並行データフェッチと preload</span><span class="d">ウォーターフォール対策</span></div>
+      <div class="agenda-row"><span class="num">06</span><span class="t">N+1 問題と DataLoader</span><span class="d">コロケーションを保ったままバッチ化</span></div>
+    </div>
+  </section>
+
+  <!-- 3. Trade-off -->
+  <section class="slide" data-title="トレードオフ">
+    <p class="kicker">01 · trade-off</p>
+    <h2 class="h2">通信回数を減らすか、責務を小さくするか</h2>
+    <div class="vs">
+      <div class="card bad-side side anim-fade-left" data-anim="fade-left">
+        <h3>まとめて 1 回で取る</h3>
+        <ul>
+          <li>通信回数は少ない</li>
+          <li>1 つの API が色々な情報を返す → <b>責務が増える</b></li>
+          <li>変更が容易でなくなる</li>
+          <li>API 自体のパフォーマンス問題が起きる</li>
+        </ul>
+      </div>
+      <div class="mid">⇄</div>
+      <div class="card good-side side anim-fade-right" data-anim="fade-right">
+        <h3>小さな単位で取る</h3>
+        <ul>
+          <li>責務が明確で変更しやすい</li>
+          <li>ただし<b>通信回数が増える</b></li>
+          <li>UX の低下・サーバー負荷の増加</li>
+          <li>親のデータを待って子が取る <b>ウォーターフォール</b>が起きやすい</li>
+        </ul>
+      </div>
+    </div>
+    <p class="callout mt-l">今日のゴール：<b>小さな単位で取る</b>設計を選び、そのデメリットを Next.js / React の仕組みで潰す</p>
+  </section>
+
+  <!-- 4. Client fetch problems -->
+  <section class="slide" data-title="クライアントフェッチの問題">
+    <p class="kicker">02 · client-side fetch</p>
+    <h2 class="h2">ブラウザから fetch すると何が困るか</h2>
+    <div class="grid g3 mt-l anim-stagger-list" data-anim-target>
+      <div class="card"><h4>🔓 セキュリティ</h4><p class="dim">ブラウザから直接 API に届く必要があるので、API を<b>公開</b>しなければならない。API キーやトークンをサーバー側に閉じ込められない。</p></div>
+      <div class="card"><h4>📦 バンドルサイズ</h4><p class="dim">フェッチ処理の JS や、表示されないかもしれないコンポーネントまでブラウザに送ることになり、バンドルが大きくなりがち。</p></div>
+      <div class="card"><h4>🐢 往復が直列に重なる</h4><p class="dim">HTML → JS 読み込み → ハイドレーション → fetch(id 一覧) → fetch(中身)。ブラウザ⇔サーバーの往復が積み重なる。</p></div>
+    </div>
+    <p class="callout ok mt-l">Server Component から呼べば、フェッチは Next.js のサーバー側で実行される → キーを隠せて、余計な JS も送らない</p>
+  </section>
+
+  <!-- 5. Client fetch code -->
+  <section class="slide" data-title="クライアントフェッチの例">
+    <p class="kicker">02 · anti-pattern</p>
+    <h2 class="h2">❌ Client Component でのデータフェッチ</h2>
+    <figure class="code sm mt-m">
+      <div class="bar">app/anti/client-fetch/ClientProducts.tsx</div>
+<pre><span class="str">'use client'</span>
+<span class="kw">export const</span> <span class="fn">ClientProducts</span> = () =&gt; {
+  <span class="kw">const</span> [products, setProducts] = <span class="fn">useState</span>&lt;Product[] | <span class="kw">null</span>&gt;(<span class="kw">null</span>)
+
+  <span class="fn">useEffect</span>(() =&gt; {
+    <span class="kw">const</span> <span class="fn">fetchProducts</span> = <span class="kw">async</span> () =&gt; {
+      <span class="cmt">// ① ハイドレーション後にやっと id 一覧を取りに行く</span>
+      <span class="kw">const</span> ids: number[] = <span class="kw">await</span> (<span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/api/products'</span>)).<span class="fn">json</span>()
+      <span class="kw">const</span> params = <span class="kw">new</span> <span class="fn">URLSearchParams</span>(ids.<span class="fn">map</span>((id) =&gt; [<span class="str">'id'</span>, <span class="fn">String</span>(id)]))
+      <span class="cmt">// ② ①が終わってから中身を取りに行く(直列)</span>
+      <span class="fn">setProducts</span>(<span class="kw">await</span> (<span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">`/api/products?${params}`</span>)).<span class="fn">json</span>())
+    }
+    <span class="fn">fetchProducts</span>()
+  }, [])
+
+  <span class="kw">if</span> (!products) <span class="kw">return</span> &lt;<span class="fn">Loading</span> /&gt;
+  <span class="kw">return</span> products.<span class="fn">map</span>((p) =&gt; &lt;<span class="fn">ProductCard</span> key={p.id} product={p} /&gt;)
+}</pre>
+    </figure>
+  </section>
+
+  <!-- 6. BFF -->
+  <section class="slide" data-title="BFF">
+    <p class="kicker">03 · BFF</p>
+    <h2 class="h2">BFF を公開しても、問題は残る</h2>
+    <div class="zone mt-l">
+      <div class="zl">❌ ブラウザから BFF を叩く構成</div>
+      <div class="flow">
+        <div class="node"><h4>Browser</h4><p>fetch</p></div>
+        <div class="arr">→</div>
+        <div class="node ng"><h4>BFF API</h4><p>public(公開が必要)</p></div>
+        <div class="arr">→</div>
+        <div class="node"><h4>Backend API</h4><p>private</p></div>
+      </div>
+    </div>
+    <div class="zone mt-m">
+      <div class="zl">✅ Server Component から取る構成 — すべて private のまま</div>
+      <div class="flow">
+        <div class="node"><h4>Browser</h4><p>HTML / RSC Payload を受け取るだけ</p></div>
+        <div class="arr">←</div>
+        <div class="node hl"><h4>Server Component</h4><p>Next.js サーバー (private)</p></div>
+        <div class="arr">→<small>fetch</small></div>
+        <div class="node hl"><h4>BFF</h4><p>private</p></div>
+        <div class="arr">→<small>fetch</small></div>
+        <div class="node"><h4>Backend API</h4><p>private</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Colocation -->
+  <section class="slide" data-title="コロケーション">
+    <p class="kicker">03 · colocation</p>
+    <h2 class="h2">データフェッチをコンポーネントの責務にする</h2>
+    <div class="grid g2 mt-l" style="align-items:start">
+      <div class="stack">
+        <p class="lede">Server Component では、<b>各コンポーネントが自分に必要なデータを自分で取る</b>。データの取得とその使い道が同じ場所に書かれる状態を<b>コロケーション</b>と呼ぶ。</p>
+        <div class="callout ok">小さな単位なので変更が容易で、API のパフォーマンス問題も起きにくい</div>
+        <div class="callout">増える通信回数は、サーバー側のキャッシュ(メモ化)で吸収する → 次のスライド</div>
+      </div>
+      <figure class="code">
+        <div class="bar">components/ProductDetail/ProductDetail.tsx</div>
+<pre><span class="kw">export const</span> <span class="fn">ProductDetail</span> = <span class="kw">async</span> ({ id }: Props) =&gt; {
+  <span class="cmt">// 自分が表示するデータは自分で取る</span>
+  <span class="kw">const</span> product = <span class="kw">await</span> <span class="fn">getProduct</span>(id)
+  <span class="kw">if</span> (!product) <span class="kw">return null</span>
+
+  <span class="kw">return</span> (
+    &lt;article&gt;
+      &lt;h1&gt;{product.name}&lt;/h1&gt;
+      &lt;p&gt;¥{product.price.<span class="fn">toLocaleString</span>()}&lt;/p&gt;
+      &lt;p&gt;{product.description}&lt;/p&gt;
+    &lt;/article&gt;
+  )
+}</pre>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 8. Memoization -->
+  <section class="slide" data-title="Request Memoization">
+    <p class="kicker">04 · request memoization</p>
+    <h2 class="h2">同じリクエストは 1 回にまとまる</h2>
+    <div class="grid g2 mt-l" style="align-items:start">
+      <div class="stack">
+        <p class="lede">1 回のレンダリング中に同じリクエストが複数回呼ばれても、結果がメモ化されて<b>実際の取得は 1 回</b>になる。</p>
+        <div class="card"><h4>「同じリクエスト」の条件</h4><p class="dim">同一 URL かつ <b>同一オプション</b>。オプションの指定ミスでメモ化が効かなくなる。</p></div>
+        <div class="callout">だからフェッチ処理はコンポーネントに直書きせず、<b>fetcher として共通化</b>しておく</div>
+      </div>
+      <figure class="code">
+        <div class="bar">app/lib/products.ts</div>
+<pre><span class="kw">import</span> <span class="str">'server-only'</span>
+<span class="kw">import</span> { cache } <span class="kw">from</span> <span class="str">'react'</span>
+
+<span class="cmt">// fetch 以外(DB 直接など)は React.cache で</span>
+<span class="cmt">// 同一リクエスト内の重複呼び出しを 1 回に</span>
+<span class="kw">export const</span> <span class="fn">getProductIds</span> = <span class="fn">cache</span>(
+  <span class="kw">async</span> (): Promise&lt;number[]&gt; =&gt; {
+    <span class="kw">const</span> { rows } = <span class="kw">await</span> <span class="fn">query</span>(
+      <span class="str">'SELECT id FROM products ORDER BY id'</span>
+    )
+    <span class="kw">return</span> rows.<span class="fn">map</span>((row) =&gt; row.id)
+  }
+)</pre>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 9. No memoization -->
+  <section class="slide" data-title="メモ化なしの場合">
+    <p class="kicker">04 · anti-pattern</p>
+    <h2 class="h2">メモ化がないと 3 か所で 3 回取る</h2>
+    <div class="vs">
+      <div class="card bad-side side">
+        <h3>❌ /anti/no-memoization/[id]</h3>
+        <ul>
+          <li><code>generateMetadata</code></li>
+          <li>ページ本体</li>
+          <li>子コンポーネント <code>Detail</code></li>
+          <li>→ <code>getProductNoCache</code> がログに <b>3 回</b></li>
+        </ul>
+      </div>
+      <div class="mid">→</div>
+      <div class="card good-side side">
+        <h3>✅ /products/[id]</h3>
+        <ul>
+          <li>同じく 3 か所で <code>getProduct</code> を呼ぶ</li>
+          <li>メモ化により DB アクセスは <b>1 回</b></li>
+          <li>ページで取って props で渡す必要がない</li>
+          <li>→ バケツリレーを避けつつ重複もしない</li>
+        </ul>
+      </div>
+    </div>
+    <p class="callout mt-l">重複を避けるためにページで取得して props で渡すと、今度は<b>バケツリレー</b>になる。メモ化があるから各コンポーネントで気軽に呼べる。</p>
+  </section>
+
+  <!-- 10. Waterfall -->
+  <section class="slide" data-title="ウォーターフォール">
+    <p class="kicker">05 · parallel fetch</p>
+    <h2 class="h2">小さく取ると、ウォーターフォールが起きる</h2>
+    <p class="lede">データフェッチに依存したデータフェッチが直列に並び、待ち時間が積み重なる。</p>
+    <div class="grid g2 mt-l">
+      <div class="card">
+        <p class="tl-title bad-t">❌ 直列(preload なし)</p>
+        <div class="tl">
+          <span class="lbl">getProduct</span><div class="track"><div class="bar b1" style="left:0;width:48%">500ms</div></div>
+          <span class="lbl">getProductIds</span><div class="track"><div class="bar b2" style="left:48%;width:48%">500ms</div></div>
+        </div>
+        <p class="dim mt-m">合計 ≒ 1000ms</p>
+      </div>
+      <div class="card">
+        <p class="tl-title good-t">✅ 並行(preload あり)</p>
+        <div class="tl">
+          <span class="lbl">getProduct</span><div class="track"><div class="bar b1" style="left:0;width:48%">500ms</div></div>
+          <span class="lbl">getProductIds</span><div class="track"><div class="bar b2" style="left:0;width:48%">500ms</div></div>
+        </div>
+        <p class="dim mt-m">合計 ≒ 500ms</p>
+      </div>
+    </div>
+    <p class="callout mt-l">対策：<b>データフェッチの単位でコンポーネントを分割</b>し、ページレベルで並行に取れる構造にする</p>
+  </section>
+
+  <!-- 11. Preload -->
+  <section class="slide" data-title="プリロードパターン">
+    <p class="kicker">05 · preload pattern</p>
+    <h2 class="h2">await の前に、取得だけ始めておく</h2>
+    <div class="grid g2 mt-m" style="align-items:start">
+      <figure class="code sm">
+        <div class="bar">components/Products/Products.tsx</div>
+<pre><span class="cmt">// 取得を開始するだけ。結果は待たない</span>
+<span class="kw">export const</span> <span class="fn">preloadProducts</span> = () =&gt; {
+  <span class="kw">void</span> <span class="fn">getProductIds</span>()
+}
+
+<span class="kw">export const</span> <span class="fn">Products</span> = <span class="kw">async</span> () =&gt; {
+  <span class="cmt">// メモ化済みの結果を受け取る</span>
+  <span class="kw">const</span> ids = <span class="kw">await</span> <span class="fn">getProductIds</span>()
+  <span class="kw">return</span> ids.<span class="fn">map</span>((id) =&gt; &lt;<span class="fn">Card</span> key={id} id={id} /&gt;)
+}</pre>
+      </figure>
+      <figure class="code sm">
+        <div class="bar">app/products/[id]/page.tsx</div>
+<pre><span class="kw">export default async function</span> <span class="fn">ProductPage</span>({ params }) {
+  <span class="kw">const</span> productId = <span class="fn">parseId</span>((<span class="kw">await</span> params).id)
+
+  <span class="cmt">// 「ほかの商品」の取得を先に始める</span>
+  <span class="fn">preloadProducts</span>()
+
+  <span class="cmt">// 404 判定のため、ここだけはページで待つ</span>
+  <span class="kw">const</span> product = <span class="kw">await</span> <span class="fn">getProduct</span>(productId)
+  <span class="kw">if</span> (!product) <span class="fn">notFound</span>()
+
+  <span class="kw">return</span> (&lt;main&gt;
+    &lt;<span class="fn">ProductDetail</span> id={productId} /&gt;
+    &lt;<span class="fn">Suspense</span> fallback={&lt;<span class="fn">Loading</span> /&gt;}&gt;
+      &lt;<span class="fn">Products</span> excludeId={productId} /&gt;
+    &lt;/<span class="fn">Suspense</span>&gt;
+  &lt;/main&gt;)
+}</pre>
+      </figure>
+    </div>
+    <p class="callout mt-m">ページのレンダリング時にリクエストが投げられ、子・孫コンポーネントは<b>メモ化された結果</b>を受け取る</p>
+  </section>
+
+  <!-- 12. N+1 -->
+  <section class="slide" data-title="N+1 問題">
+    <p class="kicker">06 · N+1</p>
+    <h2 class="h2">コロケーション × 並行フェッチ = N+1 問題</h2>
+    <div class="grid g2 mt-m" style="align-items:start">
+      <div class="stack">
+        <p class="lede">一覧を取るコンポーネントの下で、各カードが 1 件ずつ取ると<b>カードの数だけ</b>フェッチが飛ぶ。</p>
+        <div class="flow">
+          <div class="node"><h4>ids</h4><p>1 回</p></div>
+          <div class="arr">+</div>
+          <div class="node ng"><h4>Card × N</h4><p>N 回</p></div>
+          <div class="arr">=</div>
+          <div class="node ng"><h4>N + 1 回</h4><p>クエリ</p></div>
+        </div>
+        <p class="dim">ログ：<code>getProductNoCache [1]</code> / <code>[2]</code> / <code>[3]</code> が別々に出る</p>
+      </div>
+      <figure class="code sm">
+        <div class="bar">app/anti/n-plus-one/page.tsx</div>
+<pre><span class="kw">const</span> <span class="fn">Products</span> = <span class="kw">async</span> () =&gt; {
+  <span class="kw">const</span> ids = <span class="kw">await</span> <span class="fn">getProductIdsNoCache</span>()
+  <span class="kw">return</span> ids.<span class="fn">map</span>((id) =&gt; &lt;<span class="fn">Card</span> key={id} id={id} /&gt;)
+}
+
+<span class="cmt">// ❌ 1 件ずつ取得する関数をそのまま呼ぶ</span>
+<span class="kw">const</span> <span class="fn">Card</span> = <span class="kw">async</span> ({ id }) =&gt; {
+  <span class="kw">const</span> product = <span class="kw">await</span> <span class="fn">getProductNoCache</span>(id)
+  <span class="kw">return</span> &lt;<span class="fn">ProductCard</span> product={product} /&gt;
+}</pre>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 13. Batch dilemma -->
+  <section class="slide" data-title="バッチ API のジレンマ">
+    <p class="kicker">06 · batching</p>
+    <h2 class="h2">まとめて取れば解決…でもコロケーションが崩れる</h2>
+    <div class="vs">
+      <div class="card bad-side side">
+        <h3>バッチ API を親で呼ぶ</h3>
+        <ul>
+          <li>クエリパラメータ / ボディに複数 ID を渡す</li>
+          <li>リクエストは 1 回で済む</li>
+          <li>でも<b>親コンポーネントレベル</b>のフェッチになる</li>
+          <li>子は props で受け取るだけ → コロケーションから外れる</li>
+        </ul>
+      </div>
+      <div class="mid">→</div>
+      <div class="card good-side side">
+        <h3>DataLoader を挟む</h3>
+        <ul>
+          <li>コード上は各コンポーネントが<b>自分で 1 件ずつ</b>取る</li>
+          <li>同じタイミングの呼び出しを DataLoader が集める</li>
+          <li>実際の取得はバッチ API の <b>1 回</b>だけ</li>
+          <li>→ コロケーションと通信回数を両立</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14. DataLoader -->
+  <section class="slide" data-title="DataLoader">
+    <p class="kicker">06 · dataloader</p>
+    <h2 class="h2">DataLoader をリクエストごとに 1 つ作る</h2>
+    <div class="grid g2 mt-m" style="align-items:start">
+      <figure class="code sm">
+        <div class="bar">app/lib/products.ts</div>
+<pre><span class="cmt">// 複数 id を 1 クエリで取るバッチ API</span>
+<span class="cmt">// keys と同じ順序・同じ長さで返すのが約束</span>
+<span class="kw">export const</span> <span class="fn">getProductsByIds</span> = <span class="kw">async</span> (ids) =&gt; {
+  <span class="kw">const</span> { rows } = <span class="kw">await</span> <span class="fn">query</span>(
+    <span class="str">'SELECT ... WHERE id = ANY($1::int[])'</span>, [ids])
+  <span class="kw">const</span> byId = <span class="kw">new</span> <span class="fn">Map</span>(rows.<span class="fn">map</span>((r) =&gt; [r.id, r]))
+  <span class="kw">return</span> ids.<span class="fn">map</span>((id) =&gt; byId.<span class="fn">get</span>(id) ?? <span class="kw">null</span>)
+}
+
+<span class="cmt">// React.cache でリクエストごとに 1 つだけ作る</span>
+<span class="kw">const</span> <span class="fn">getProductLoader</span> = <span class="fn">cache</span>(
+  () =&gt; <span class="kw">new</span> <span class="fn">DataLoader</span>((ids) =&gt; <span class="fn">getProductsByIds</span>(ids))
+)
+
+<span class="kw">export const</span> <span class="fn">getProduct</span> = <span class="kw">async</span> (id: number) =&gt;
+  <span class="fn">getProductLoader</span>().<span class="fn">load</span>(id)</pre>
+      </figure>
+      <div class="stack">
+        <div class="callout ok">Card ごとに <code>getProduct(id)</code> を呼んでも、ログは <code>getProductsByIds [1, 2, 3]</code> の <b>1 回</b></div>
+        <div class="card" style="border-top:3px solid var(--bad)">
+          <h4>⚠️ モジュールスコープで new しない</h4>
+          <p class="dim">DataLoader 自身もキャッシュを持つため、モジュールスコープで作るとプロセス全体で共有される。<b>別ユーザーのリクエストに古いデータや他人のデータが漏れる</b>。</p>
+          <p class="dim mt-s">デモ：<code>/anti/shared-loader/[id]</code> で DB の価格を変えてリロード → 古い価格のまま</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15. Takeaways -->
+  <section class="slide" data-title="まとめ">
+    <p class="kicker">// takeaways</p>
+    <h2 class="h2">まとめ</h2>
+    <div class="grid g2 mt-l anim-stagger-list" data-anim-target>
+      <div class="card"><h4>1 · サーバーで取る</h4><p class="dim">Server Component でフェッチすれば API を公開せず、余計な JS も送らない。</p></div>
+      <div class="card"><h4>2 · コロケーション</h4><p class="dim">データは使うコンポーネントが自分で取る。小さな単位で変更に強い。</p></div>
+      <div class="card"><h4>3 · fetcher を共通化してメモ化</h4><p class="dim">同一 URL・同一オプション / <code>React.cache</code> で重複を 1 回に。バケツリレー不要。</p></div>
+      <div class="card"><h4>4 · preload で並行化</h4><p class="dim">await の前に取得を始めて、ウォーターフォールを避ける。</p></div>
+      <div class="card"><h4>5 · DataLoader で N+1 を解消</h4><p class="dim">コード上は 1 件ずつ、実際は 1 回のバッチ取得。</p></div>
+      <div class="card"><h4>6 · DataLoader はリクエスト単位</h4><p class="dim"><code>cache(() =&gt; new DataLoader(...))</code>。モジュールスコープは情報漏洩の原因。</p></div>
+    </div>
+  </section>
+
+  <!-- 16. Demo routes -->
+  <section class="slide" data-title="デモページ">
+    <p class="kicker">// hands-on · my-app</p>
+    <h2 class="h2">手元で比べてみよう</h2>
+    <p class="lede"><code>DB_DELAY_MS=500</code> で起動し、ターミナルのクエリログを推奨版と見比べる</p>
+    <div class="grid g2 mt-l">
+      <div class="card" style="border-top:3px solid var(--good)">
+        <h4>✅ 推奨版</h4>
+        <div class="routes">
+          <div><code>/products</code> 一覧(DataLoader でバッチ)</div>
+          <div><code>/products/[id]</code> 詳細(メモ化 + preload)</div>
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid var(--bad)">
+        <h4>❌ アンチパターン</h4>
+        <div class="routes">
+          <div><code>/anti/client-fetch</code> クライアントフェッチ</div>
+          <div><code>/anti/props-drilling</code> バケツリレー</div>
+          <div><code>/anti/no-memoization/[id]</code> メモ化なし</div>
+          <div><code>/anti/waterfall/[id]</code> preload なし</div>
+          <div><code>/anti/n-plus-one</code> N+1</div>
+          <div><code>/anti/shared-loader/[id]</code> 共有 DataLoader</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+<script src="assets/runtime.js"></script>
+</body></html>
