@@ -1,0 +1,82 @@
+/* html-ppt single-page layouts used by this deck.
+ * 出典：templates/single-page/{cover,comparison,process-steps,flow-diagram,bullets,big-quote,cta}.html の <style>。
+ * 元は 12〜24px の本文サイズなので、LT の基準（1920×1080 で見出し88〜120px・本文48〜52px）に拡大した。
+ * 色は --text-3（約2.8:1）を --text-2 に置き換えている。アニメーション（anim-* / data-anim）は使わない。 */
+
+/* ---------- cover / cta 共通：名前のピル ---------- */
+.pill.name{font-size:48px;padding:10px 40px;font-weight:600;color:var(--text-2)}
+.pill-accent.name{color:var(--accent)}
+
+/* ---------- cover ---------- */
+.cover .h1{font-size:104px;line-height:1.25;margin:0;font-weight:700}
+.cover .lede{font-size:52px;line-height:1.5;color:var(--text-2);font-weight:500;max-width:none;margin:48px 0 0}
+.cover .row{margin-top:56px}
+
+/* ---------- 見出しの下の領域（S2〜S7）：残りの高さの中で縦中央に置く ---------- */
+.slide.staged{justify-content:flex-start}
+.slide.staged .stage{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;padding-bottom:24px}
+.slide.staged .stage > *{margin-top:0}
+
+/* ---------- comparison（S2・S3） ---------- */
+.vs{display:grid;grid-template-columns:1fr 120px 1fr;gap:32px;align-items:stretch;margin-top:80px}
+.vs .side{padding:64px 64px;height:540px;display:flex;flex-direction:column}
+.vs .mid{font-size:88px;font-weight:800;color:var(--text-2);display:flex;align-items:center;justify-content:center}
+.vs .before-side{border-top:6px solid var(--text-2)}
+.vs .after-side{border-top:6px solid var(--accent)}
+.vs .side h3{font-size:56px;line-height:1.2;margin:0 0 28px;font-weight:700}
+.vs .side p{font-size:52px;line-height:1.45;margin:0;color:var(--text-1)}
+.vs .after-side h3,.vs .after-side p{color:var(--accent);font-weight:700}
+/* 次のスライドで中身が入る枠（同じ大きさ・位置を保つ） */
+.vs .side.pending{background:transparent;box-shadow:none;border:4px dashed var(--border-strong)}
+
+/* ---------- process-steps（S4・S5）：番号の丸は外し、comparison と同じカードで見せる ---------- */
+.vs.steps .step-2{border-top:6px solid var(--accent)}
+.vs.steps .step-2 h3{color:var(--accent)}
+.vs.steps .step-2 p{color:var(--text-1);font-weight:400}
+.vs.steps .hl{color:var(--accent);font-weight:700}
+
+/* ---------- flow-diagram（S6） ---------- */
+.flow{display:flex;align-items:stretch;gap:24px;min-height:480px}
+.flow .node{flex:1;background:var(--surface);border:2px solid var(--border-strong);border-radius:var(--radius);padding:56px 32px;text-align:center;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center}
+.flow .node h4{font-size:52px;line-height:1.35;margin:0;font-weight:700}
+.flow .arr{color:var(--text-2);font-size:80px;font-weight:800;flex-shrink:0;display:flex;align-items:center}
+.flow .node.hl{border:4px solid var(--accent);box-shadow:0 0 0 8px color-mix(in srgb,var(--accent) 14%,transparent),var(--shadow)}
+.flow .node.hl h4{color:var(--accent)}
+
+/* ---------- bullets（S7） ---------- */
+.bullets{list-style:none;padding:0;margin:80px 0 0;display:grid;gap:40px}
+.bullets .card{padding:64px 64px}
+.bullets .card p{font-size:52px;line-height:1.4;margin:0;color:var(--text-1)}
+.card-accent{border-top:0;border-left:8px solid var(--accent)}
+
+/* ---------- big-quote（S8） ---------- */
+.quote{max-width:1600px}
+.quote .mark{font-size:240px;line-height:.8;color:var(--accent);opacity:.6;font-weight:800}
+.quote blockquote{font-size:120px;line-height:1.35;margin:0;font-weight:800;letter-spacing:.02em;color:var(--text-1)}
+.quote blockquote .em{color:var(--accent)}
+
+/* ---------- cta（S9） ---------- */
+.cta .h1{font-size:104px;line-height:1.25;margin:0;font-weight:700}
+.cta .lede{font-size:52px;line-height:1.5;color:var(--text-2);font-weight:500;max-width:none;margin:48px auto 0}
+.cta .row{justify-content:center;margin-top:56px}
+
+/* 次のスライドで中身が入る空き枠は、どのカードの色指定よりも優先して点線だけにする（S2・S4） */
+.vs .card.side.pending{background:transparent;box-shadow:none;border:4px dashed var(--border-strong)}
+
+/* ---------- 観点の一覧（S7・S8）：bullets の変形。8つの観点をタグで並べ、下に結論の枠を置く ---------- */
+.tags{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+.tags li{background:var(--surface);border:2px solid var(--border-strong);border-radius:var(--radius);padding:36px 20px;text-align:center;font-size:44px;font-weight:600;line-height:1.3;color:var(--text-1);box-shadow:var(--shadow)}
+.verdict{margin-top:56px;height:220px;border-left:8px solid var(--accent);background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:32px 56px;display:flex;flex-direction:column;justify-content:center;gap:12px}
+.verdict p{font-size:48px;line-height:1.35;margin:0;color:var(--text-2)}
+.verdict p.hl{font-size:56px;color:var(--accent);font-weight:800}
+.verdict.pending{background:transparent;box-shadow:none;border:4px dashed var(--border-strong)}
+
+/* ---------- 強調の一文（S6・S10） ---------- */
+.bullets .card p.hl{color:var(--accent);font-weight:700}
+.cta .h1 .em{color:var(--accent)}
+
+/* S4：3枚のカードと2行の見出しが収まるよう、余白を詰める */
+.bullets.compact{gap:24px}
+.bullets.compact .card{padding:36px 56px}
+/* S7・S8：一覧と結論の枠の間をあける（.stage > * の margin-top:0 より優先） */
+.slide.staged .stage > .verdict{margin-top:56px}
