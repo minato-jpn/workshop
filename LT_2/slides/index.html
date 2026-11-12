@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="japanese-minimal">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>コードを理解していないと、仕様の抜け漏れに気づけない</title>
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" id="theme-link" href="assets/themes/japanese-minimal.css">
+<link rel="stylesheet" href="assets/layouts.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-theme-base="assets/themes/">
+<div class="deck">
+
+  <!-- 1. つかみ — layout: cover -->
+  <section class="slide cover" data-title="つかみ">
+    <h1 class="h1">コードを理解していないと、<br>仕様の抜け漏れに気づけない</h1>
+    <p class="lede">新卒3ヶ月、AIと一緒にコードレビューをしてきた</p>
+    <div class="deck-footer"><span></span><span class="slide-number"></span></div>
+    <aside class="notes">
+      <p class="cue">⏱ 18秒（累計 0:18）／演出：名前を言ってから、一呼吸。</p>
+      <p>こんにちは、新卒の○○です。</p>
+      <p>この3ヶ月、私はAIと一緒にコードレビューをしてきました。</p>
+      <p>今日は、その中で「ここは人間がやらないといけない」と思ったことを話します。</p>
+    </aside>
+  </section>
+
+  <!-- 2. 想像 — layout: comparison（右の枠は空。S3 で中身が入る） -->
+  <section class="slide staged hold" data-title="想像">
+    <h2 class="h2">配属前の想像と現実</h2>
+    <div class="stage">
+    <div class="vs">
+      <div class="card before-side side"><h3>想像：</h3><p>仕様書が自動で<br>更新される現場</p></div>
+      <div class="mid">→</div>
+      <div class="card after-side side pending"></div>
+    </div>
+    </div>
+    <div class="deck-footer"><span></span><span class="slide-number"></span></div>
+    <aside class="notes">
+      <p class="cue">⏱ 20秒（累計 0:38）／演出：「チャーリーとチョコレート工場」は少し楽しそうに。言い終えたら次のスライドへ。</p>
+      <p>配属される前、私は現場をこう想像していました。仕様書がどこかにきちんと保存されていて、それが自動で更新されていく。チャーリーとチョコレート工場のような現場です。</p>
+    </aside>
+  </section>
+
+  <!-- 3. 現実 — layout: comparison -->
+  <section class="slide staged hold" data-title="現実">
+    <h2 class="h2">配属前の想像と現実</h2>
+    <div class="stage">
+    <div class="vs">
+      <div class="card before-side side"><h3>想像：</h3><p>仕様書が自動で<br>更新される現場</p></div>
+      <div class="mid">→</div>
+      <div class="card after-side side"><h3>現実：</h3><p>網羅的・最新・正しい<br>情報リソースは、<br>どこにもない</p></div>
+    </div>
+    </div>
+    <div class="deck-footer"><span></span><span class="slide-number"></span></div>
+    <aside class="notes">
+      <p class="cue">⏱ 25秒（累計 1:03）／演出：切り替えてから「……実際は」の前に一拍。最後の一文はゆっくり。このLTの土台。</p>
+      <p>……実際は、そんなことはありませんでした。研修で学んだような仕様はありません。仕様は複雑に配置されていて、時系列でも複雑に更新されます。しかも、完成したらポイッ。</p>
+      <p>網羅的で、最新で、正しい情報リソースは、どこにも存在しないんです。</p>
+    </aside>
+  </section>
+
+  <!-- 4. 情報が分散しすぎている — layout: bullets -->
+  <section class="slide staged hold" data-title="情報が分散しすぎている">
+    <h2 class="h2">AIにとっても、<br>情報が分散しすぎている</h2>
+    <div class="stage">
+    <ul class="bullets compact">
+      <li class="card"><p>IssueやPRのコメントも見てもらっている</p></li>
+      <li class="card card-accent"><p>レビュー中のブランチ全部は、やりづらい</p></li>
+      <li class="card card-accent"><p>IssueとPRのすべては、現実的ではない</p></li>
+    </ul>
+    </div>
+    <div class="deck-footer"><span></span><span class="slide-number"></span></div>
+    <aside class="notes">
+      <p class="cue">⏱ 33秒（累計 1:36）／演出：1文目で「想像と現実」から話をつなぐ。</p>
+      <p>この状態は、AIにとっても同じです。</p>
+      <p>私はAIに、コードだけでなく、IssueやPRのコメントも見てもらっています。でも、情報が分散しすぎています。［削る候補②：2番目に削る］<span class="cut">レビュー中のブランチを全部見に行かせるのはコンテキストサイズが心配ですし、</span>IssueとPRのすべてに目を通せる環境は、会社の情報のリソースを考えると現実的ではありません。</p>
+    </aside>
+  </section>
+
+  <!-- 5. 例 — layout: flow-diagram -->
+  <section class="slide staged" data-title="例：マージが遅れたとき">
+    <h2 class="h2">例：マージが遅れたとき</h2>
+    <div class="stage">
+    <div class="flow" role="img" aria-label="マージが遅れる → developが古いまま → 仕様の変更に気づけない">
+      <div class="node"><h4>マージが<br>遅れる</h4></div>
+      <div class="arr">→</div>
+      <div class="node"><h4>developが<br>古いまま</h4></div>
+      <div class="arr">→</div>
+      <div class="node hl"><h4>仕様の変更に<br>気づけない</h4></div>
+    </div>
+    </div>
+    <div class="deck-footer"><span></span><span class="slide-number"></span></div>
+    <aside class="notes">
+      <p class="cue">⏱ 22秒（累計 1:58）／演出：図を左から順に指しながら話す。</p>
+      <p>たとえば、リリースの関係でマージが遅れると、developブランチが実質かなり古い状態になります。その古い状態を基準にブランチを作ってしまったり、仕様の一部が変わったことに気づけなかったり。</p>
+    </aside>
+  </section>
+
+  <!-- 6. AIには見つけづらい — layout: bullets -->
+  <section class="slide staged" data-title="AIには見つけづらい">
+    <h2 class="h2">こうした抜け漏れは、<br>AIには見つけづらい</h2>
+    <div class="stage">
+    <ul class="bullets">
+      <li class="card"><p>コードの一部が、抜け漏れにつながることもある</p></li>
+      <li class="card card-accent"><p class="hl">コードの意図の誤りを指摘できるのは人間</p></li>
+    </ul>
+    </div>
+    <div class="deck-footer"><span></span><span class="slide-number"></span></div>
+    <aside class="notes">
+      <p class="cue">⏱ 25秒（累計 2:23）／演出：「見つけづらい」で一拍。</p>
+      <p>コードの一部が仕様の抜け漏れにつながることもあって、こうした抜け漏れは、AIには見つけづらい。［削る候補①：最初に削る］<span class="cut">AIのコードの解釈は基本的に正しいと思います。</span>でも、コードの意図が間違っているとき、それを指摘できるのは人間です。</p>
+    </aside>
+  </section>
+
+  <!-- 7. 多様な視点 — layout: bullets（タグの一覧。下の枠は空。S8 で中身が入る） -->
+  <section class="slide staged hold" data-title="レビューには多様な視点が必要">
+    <h2 class="h2">レビューには、多様な視点が必要</h2>
+    <div class="stage">
+      <ul class="tags">
+        <li>仕様の分析</li>
+        <li>セキュリティ</li>
+        <li>バグ</li>
+        <li>条件分岐</li>
+        <li>テストケース</li>
+        <li>既存コードの設計</li>
+        <li>アーキテクチャ</li>
+        <li>依存関係への影響</li>
+      </ul>
+      <div class="verdict pending"></div>
+    </div>
+    <div class="deck-footer"><span></span><span class="slide-number"></span></div>
+    <aside class="notes">
+      <p class="cue">⏱ 32秒（累計 2:55）／演出：観点は全部読み上げない（本人の指定）。一覧を手で示して量で伝える。8つの観点は一覧なので「1枚3行」の例外。</p>
+      <p>では、レビューの観点をSKILLにまとめて、AIに渡せばいいのか。</p>
+      <p>レビューには、多様な視点からのチェックが必要です。まず仕様の分析。［削る候補③：最後に削る］<span class="cut">そもそも仕様がどこにあるのか、さっきのとおり情報は離散しています。</span>ほかにも、セキュリティ、バグ、条件分岐、テストのケース、設計やアーキテクチャ、依存関係への影響。</p>
+    </aside>
+  </section>
+
+  <!-- 8. SKILLに書ききれない — layout: bullets -->
+  <section class="slide staged hold" data-title="SKILLに書ききれない">
+    <h2 class="h2">レビューには、多様な視点が必要</h2>
+    <div class="stage">
+      <ul class="tags">
+        <li>仕様の分析</li>
+        <li>セキュリティ</li>
+        <li>バグ</li>
+        <li>条件分岐</li>
+        <li>テストケース</li>
+        <li>既存コードの設計</li>
+        <li>アーキテクチャ</li>
+        <li>依存関係への影響</li>
+      </ul>
+      <div class="verdict"><p>探せば、手の届かない部分が無限に出てくる</p><p class="hl">すべてをSKILLに記述するのは難しい</p></div>
+    </div>
+    <div class="deck-footer"><span></span><span class="slide-number"></span></div>
+    <aside class="notes">
+      <p class="cue">⏱ 17秒（累計 3:12）／演出：切り替えてから話す。「難しいんです」はゆっくり。</p>
+      <p>多分、探せば手の届かない部分が無限に出てきます。それらすべてをSKILLに記述するのは、難しいんです。</p>
+    </aside>
+  </section>
+
+  <!-- 9. 気づき（山場） — layout: big-quote -->
+  <section class="slide center tc" data-title="気づき">
+    <div class="quote">
+      <div class="mark" aria-hidden="true">“</div>
+      <blockquote>コードを理解していないと、<br><span class="em">仕様の抜け漏れに気づけない</span></blockquote>
+    </div>
+    <div class="deck-footer"><span></span><span class="slide-number"></span></div>
+    <aside class="notes">
+      <p class="cue">⏱ 40秒（累計 3:52）／演出：このLTの山場。1文目で2部（情報）と3部（観点）をまとめてから言い切る。削らず、ゆっくり。このあとに新しい論点は足さない。</p>
+      <p>情報も、レビューの観点も、AIに全部は渡しきれない。だから、仕様の抜け漏れに気づくのは人間の役目です。</p>
+      <p>別の作業や新しい仕様が入ってきたとき、コードを理解していないと、仕様の抜け漏れには気づけません。コードの責任を担う上でも、コードの理解は、私は必要だと思っています。</p>
+    </aside>
+  </section>
+
+  <!-- 10. 締め — layout: cta -->
+  <section class="slide center tc cta" data-title="締め">
+    <div>
+      <h1 class="h1">コードを理解していないと、<br><span class="em">仕様の抜け漏れに気づけない</span></h1>
+      <p class="lede">ありがとうございました</p>
+    </div>
+    <div class="deck-footer"><span></span><span class="slide-number"></span></div>
+    <aside class="notes">
+      <p class="cue">⏱ 15秒（累計 4:07）／演出：タイトルの再掲。言い終えたら一礼。</p>
+      <p>AIと一緒にレビューしていても、仕様の抜け漏れに気づくには、仕様とコードの理解が必要です。ありがとうございました。</p>
+    </aside>
+  </section>
+
+</div>
+<script src="assets/runtime.js"></script>
+<script>
+  /* ページ番号の自動採番（runtime.js は最初の1つの .slide-number しか更新しないため） */
+  (function () {
+    var slides = document.querySelectorAll('.deck > .slide');
+    slides.forEach(function (s, i) {
+      var n = s.querySelector('.slide-number');
+      if (n) { n.setAttribute('data-current', i + 1); n.setAttribute('data-total', slides.length); }
+    });
+  })();
+</script>
+</body></html>

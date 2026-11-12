@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "cuopt-numerical-optimization-api": {
+      "source": "nvidia/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cuopt-numerical-optimization-api/SKILL.md",
+      "computedHash": "7ec2fa782184135ac3ebc3a89ab8b7051a021fecf07b91fab7ebaf0ebd00c07a"
+    },
+    "html-ppt": {
+      "source": "lewislulu/html-ppt-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "6839e0e1d79f0f175d88432599bfc2664c80ef5ec8909069e930df0ac51ac928"
+    }
+  }
+}

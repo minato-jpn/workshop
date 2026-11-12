@@ -1,0 +1,21 @@
+/* LT_2 deck overrides — loaded after the theme and layouts.css */
+:root{
+  --font-sans:"Noto Sans JP","Noto Sans CJK JP","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+  --font-display:var(--font-sans);
+  --font-serif:var(--font-sans);
+}
+html,body{font-family:var(--font-sans)}
+
+/* 見出し（1920×1080 基準で 88〜120px） */
+.h2{font-family:var(--font-display);font-size:96px;line-height:1.2;font-weight:700;letter-spacing:.02em;margin:0;color:var(--text-1)}
+
+/* chrome: 補足文字は --text-2（--text-3 はコントラスト不足） */
+.deck-footer{font-size:28px;color:var(--text-2)}
+
+/* R8：段階表示の組（S2・S3、S4・S5）は切り替えで動かさない。
+ * base.css は切り替えの0.5秒間、出ていく側を左へ30px・入る側を右から30pxずらしてフェードする。
+ * CSS のトランジションは「切り替え後の状態」の指定で決まるので、S3 だけ止めると ← で S3→S2 に戻るとき
+ * S3 が一瞬で消え S2 がフェードで現れて見出しが点滅する。そこで S2〜S5 の4枚すべてで横移動とトランジションを止め、
+ * 背景を不透明にして、下でフェードアウトしている前後のスライドが透けないようにする。
+ * （S1→S2 と S5→S6 も切り替えは一瞬になる。） */
+.slide.hold,.slide.hold.is-prev,.slide.hold.is-active{transform:none;transition:none;background:var(--bg)}
